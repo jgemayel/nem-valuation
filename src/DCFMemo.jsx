@@ -1,86 +1,45 @@
-import { useState } from "react";
-
-// ============================================================
-// DATA
-// ============================================================
 const years = ["2024A","2025E","2026E","2027E","2028E","2029E"];
-const revenue =    [18.68, 24.50, 30.00, 31.50, 32.50, 33.50];
-const ebitdaMargin=[46.6, 48.0, 50.0, 50.0, 49.0, 49.0];
-const ebitda =     [8.70, 11.76, 15.00, 15.75, 15.93, 16.42];
-const dna =        [3.00, 3.00, 3.00, 3.00, 3.00, 3.00];
-const ebit =       [5.70, 8.76, 12.00, 12.75, 12.93, 13.42];
-const nopat =      ebit.map(e => (e * 0.70).toFixed(2));
-const capex =      [3.40, 3.10, 3.20, 3.30, 3.30, 3.40];
-const fcf =        [2.96, 6.03, 8.20, 8.63, 8.75, 8.99];
-const goldPrices = ["$2,408","$3,800","$5,000","$5,200","$5,300","$5,400"];
+const revenue =    [18.68,24.50,30.00,31.50,32.50,33.50];
+const ebitdaM =    [46.6,48.0,50.0,50.0,49.0,49.0];
+const ebitda =     [8.70,11.76,15.00,15.75,15.93,16.42];
+const dna =        [3.00,3.00,3.00,3.00,3.00,3.00];
+const ebit =       [5.70,8.76,12.00,12.75,12.93,13.42];
+const nopat =      ebit.map(e=>(e*0.70).toFixed(2));
+const capex =      [3.40,3.10,3.20,3.30,3.30,3.40];
+const fcf =        [2.96,6.03,8.20,8.63,8.75,8.99];
+const goldP =      ["$2,408","$3,800","$5,000","$5,200","$5,300","$5,400"];
+const W=0.077;
+const pf=[1,2,3,4,5].map(n=>Math.pow(1+W,n));
+const pvF=[6.03,8.20,8.63,8.75,8.99].map((f,i)=>f/pf[i]);
+const sP=pvF.reduce((a,b)=>a+b,0);
+const tvE=10*ebitda[5], tvP=(fcf[5]*1.025)/(W-0.025);
+const pvE=tvE/pf[4], pvP=tvP/pf[4];
+const evE=sP+pvE, evP=sP+pvP;
+const eqE=evE+0.8, eqP=evP+0.8;
+const pE=eqE/1097*1000, pP=eqP/1097*1000, pB=(pE+pP)/2;
+const wA=[6.7,7.0,7.4,7.7,8.0,8.4], gA=[1.5,2.0,2.5,3.0,3.5];
+function cSP(w,g){const wd=w/100,gd=g/100;const p=[6.03,8.20,8.63,8.75,8.99].map((f,i)=>f/Math.pow(1+wd,i+1));const s=p.reduce((a,b)=>a+b,0);const t=(8.99*(1+gd))/(wd-gd);return Math.round((s+t/Math.pow(1+wd,5)+0.8)/1097*1000);}
+const mx=gA.map(g=>wA.map(w=>cSP(w,g)));
 
-const WACC = 0.077;
-const pvFactors = [1,2,3,4,5].map(n => Math.pow(1+WACC, n));
-const pvFCFs = [6.03,8.20,8.63,8.75,8.99].map((f,i) => f / pvFactors[i]);
-const sumPV = pvFCFs.reduce((a,b) => a+b, 0);
-const tvExit = 10.0 * ebitda[5];
-const tvPerp = (fcf[5] * 1.025) / (WACC - 0.025);
-const pvTVExit = tvExit / pvFactors[4];
-const pvTVPerp = tvPerp / pvFactors[4];
-const evExit = sumPV + pvTVExit;
-const evPerp = sumPV + pvTVPerp;
-const eqExit = evExit + 0.8;
-const eqPerp = evPerp + 0.8;
-const priceExit = eqExit / 1097 * 1000;
-const pricePerp = eqPerp / 1097 * 1000;
-const priceBlend = (priceExit + pricePerp) / 2;
+const font = "'Inter', -apple-system, sans-serif";
+const serif = "'Georgia', 'Times New Roman', serif";
 
-// Sensitivity
-const waccArr = [6.7,7.0,7.4,7.7,8.0,8.4];
-const growthArr = [1.5,2.0,2.5,3.0,3.5];
-function calcSP(w,g) {
-  const wd=w/100, gd=g/100;
-  const pv = [6.03,8.20,8.63,8.75,8.99].map((f,i)=>f/Math.pow(1+wd,i+1));
-  const s = pv.reduce((a,b)=>a+b,0);
-  const tv = (8.99*(1+gd))/(wd-gd);
-  return Math.round((s + tv/Math.pow(1+wd,5) + 0.8) / 1097 * 1000);
-}
-const matrix = growthArr.map(g => waccArr.map(w => calcSP(w,g)));
-
-// ============================================================
-// STYLE HELPERS
-// ============================================================
-const S = {
-  page: { maxWidth: 860, margin: "0 auto", padding: "40px 24px", color: "#CBD5E1" },
-  h1: { fontSize: 24, fontWeight: 700, color: "#F1F5F9", margin: "40px 0 16px 0", paddingBottom: 8, borderBottom: "2px solid #2563EB" },
-  h2: { fontSize: 20, fontWeight: 700, color: "#93C5FD", margin: "32px 0 12px 0" },
-  h3: { fontSize: 16, fontWeight: 700, color: "#94A3B8", margin: "24px 0 8px 0" },
-  p: { fontSize: 14, lineHeight: 1.75, color: "#94A3B8", margin: "0 0 16px 0" },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 24 },
-  th: { padding: "8px 10px", background: "#1B3A5C", color: "#F1F5F9", fontWeight: 600, textAlign: "center", border: "1px solid #334155" },
-  thL: { padding: "8px 10px", background: "#1B3A5C", color: "#F1F5F9", fontWeight: 600, textAlign: "left", border: "1px solid #334155" },
-  td: { padding: "7px 10px", textAlign: "center", border: "1px solid #1E293B", color: "#E2E8F0" },
-  tdL: { padding: "7px 10px", textAlign: "left", border: "1px solid #1E293B", color: "#E2E8F0", fontWeight: 600 },
-  alt: { background: "#0F172A" },
-  highlight: { background: "#2563EB15", fontWeight: 700 },
-  accent: { background: "#FFFACD20", fontWeight: 700, color: "#FCD34D" },
-};
-
-function MemoTable({ headers, rows, labelCol = true }) {
+function T({headers, rows, compact}) {
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table style={S.table}>
+    <div style={{overflowX:"auto",marginBottom:24}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:compact?12:13,fontFamily:font}}>
         <thead>
-          <tr>
-            {headers.map((h,i) => (
-              <th key={i} style={i === 0 && labelCol ? S.thL : S.th}>{h}</th>
+          <tr style={{borderBottom:"2px solid #333"}}>
+            {headers.map((h,i)=>(
+              <th key={i} style={{padding:"8px 10px",color:"#333",fontWeight:600,textAlign:i===0?"left":"right",fontSize:11,letterSpacing:0.5,textTransform:"uppercase"}}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, ri) => (
-            <tr key={ri} style={row._style || (ri % 2 === 0 ? S.alt : {})}>
-              {row.cells.map((c, ci) => (
-                <td key={ci} style={{
-                  ...(ci === 0 && labelCol ? S.tdL : S.td),
-                  ...(row._highlight ? S.highlight : {}),
-                  ...(row._accent ? S.accent : {}),
-                }}>{c}</td>
+          {rows.map((r,ri)=>(
+            <tr key={ri} style={{borderBottom:"1px solid #E5E5E0",background:r.em?"#F5F5F0":undefined}}>
+              {r.c.map((c,ci)=>(
+                <td key={ci} style={{padding:"7px 10px",textAlign:ci===0?"left":"right",color:r.em?"#111":"#555",fontWeight:r.em?600:400,fontSize:compact?12:13}}>{c}</td>
               ))}
             </tr>
           ))}
@@ -90,288 +49,208 @@ function MemoTable({ headers, rows, labelCol = true }) {
   );
 }
 
-// ============================================================
-// COMPONENT
-// ============================================================
-export default function DCFMemo() {
+function Section({n, title, children}){
   return (
-    <div style={{ background: "#0F172A", minHeight: "100vh", fontFamily: "'Inter', -apple-system, sans-serif" }}>
-      <div style={S.page}>
+    <div style={{marginBottom:48}}>
+      <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:16,borderBottom:"1px solid #DDD",paddingBottom:8}}>
+        <span style={{fontSize:13,color:"#AAA",fontFamily:font,fontWeight:600}}>{n}</span>
+        <h2 style={{fontSize:22,fontWeight:400,color:"#111",margin:0,fontFamily:serif}}>{title}</h2>
+      </div>
+      {children}
+    </div>
+  );
+}
 
-        {/* =========== HEADER =========== */}
-        <div style={{ textAlign: "center", marginBottom: 40, paddingTop: 20 }}>
-          <div style={{ fontSize: 11, letterSpacing: 3, color: "#475569", textTransform: "uppercase", marginBottom: 12 }}>Confidential Valuation Memorandum</div>
-          <h1 style={{ fontSize: 34, fontWeight: 800, color: "#F1F5F9", margin: "0 0 8px 0", letterSpacing: -0.5 }}>Newmont Corporation (NYSE: NEM)</h1>
-          <p style={{ fontSize: 16, color: "#64748B", margin: "0 0 4px 0" }}>Discounted Cash Flow Analysis</p>
-          <p style={{ fontSize: 13, color: "#475569", margin: 0 }}>Prepared March 10, 2026 | Current Share Price: $116.29 | Market Cap: ~$127.6B</p>
+function P({children}){return <p style={{fontSize:14,lineHeight:1.8,color:"#666",margin:"0 0 14px 0",fontFamily:font,fontWeight:400}}>{children}</p>;}
+function Sub({children}){return <p style={{fontSize:12,fontWeight:600,color:"#999",textTransform:"uppercase",letterSpacing:1,margin:"20px 0 8px 0",fontFamily:font}}>{children}</p>;}
+
+export default function DCFMemo(){
+  return (
+    <div style={{background:"#FAFAF8",minHeight:"100vh",fontFamily:serif}}>
+      <div style={{maxWidth:780,margin:"0 auto",padding:"48px 24px"}}>
+
+        {/* Header */}
+        <div style={{textAlign:"center",marginBottom:48}}>
+          <p style={{fontSize:11,letterSpacing:4,color:"#AAA",textTransform:"uppercase",fontFamily:font,marginBottom:20}}>Confidential</p>
+          <h1 style={{fontSize:36,fontWeight:400,color:"#111",margin:"0 0 6px 0",letterSpacing:-0.3}}>Newmont Corporation</h1>
+          <p style={{fontSize:15,color:"#888",fontStyle:"italic",margin:"0 0 4px 0"}}>Discounted Cash Flow Valuation</p>
+          <p style={{fontSize:12,color:"#BBB",fontFamily:font,margin:0}}>March 10, 2026 &nbsp;&middot;&nbsp; NYSE: NEM &nbsp;&middot;&nbsp; $116.29</p>
         </div>
 
-        {/* =========== VERDICT BOX =========== */}
-        <div style={{
-          background: "#10B98115", border: "2px solid #10B98140", borderRadius: 12,
-          padding: "20px 28px", textAlign: "center", marginBottom: 40,
-        }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#10B981", marginBottom: 6 }}>VERDICT: MODERATELY UNDERVALUED</div>
-          <div style={{ fontSize: 15, color: "#E2E8F0", fontWeight: 600 }}>DCF Implied Fair Value: $133 - $142 per share | Blended: ~$137</div>
-          <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 4 }}>Current Price: $116.29 | Implied Upside: ~18% | Analyst Consensus Target: $133 - $140</div>
+        {/* Verdict */}
+        <div style={{borderTop:"2px solid #111",borderBottom:"2px solid #111",padding:"16px 0",textAlign:"center",marginBottom:48}}>
+          <p style={{fontSize:11,letterSpacing:3,color:"#999",textTransform:"uppercase",fontFamily:font,margin:"0 0 6px 0"}}>Verdict</p>
+          <p style={{fontSize:20,fontWeight:400,color:"#111",margin:"0 0 4px 0"}}>Moderately Undervalued</p>
+          <p style={{fontSize:13,color:"#888",fontFamily:font,margin:0}}>Fair Value ~$137 &nbsp;&middot;&nbsp; Current $116.29 &nbsp;&middot;&nbsp; ~18% upside</p>
         </div>
 
-        {/* =========== LAYMAN SUMMARY =========== */}
-        <h1 style={S.h1}>What This Means in Plain English</h1>
-        <p style={S.p}>Newmont is the world's largest gold miner. It produces roughly 5.6 million ounces of gold a year from mines across five continents and sits on 134 million ounces of gold reserves, enough to sustain production for over two decades.</p>
-        <p style={S.p}>Gold has been on an extraordinary run. It started 2024 around $2,000 per ounce and now trades above $5,100. That surge has transformed Newmont's economics. The company's cost to mine an ounce of gold is about $1,620. When gold sells for $5,100, the profit margin on every single ounce is roughly $3,480. That is an immensely profitable business.</p>
-        <p style={S.p}>So why might the stock still be undervalued? A few reasons. First, the stock has roughly tripled from its 2024 lows, which makes some investors nervous about chasing it. Second, gold miners historically trade at a discount to the value of their underlying gold because of operational risks, political risks in mining jurisdictions, and the cyclical nature of commodity prices. Third, many investors are still catching up to the new gold price reality and what it means for Newmont's cash flows.</p>
-        <p style={S.p}>Our model suggests the stock is worth about $137 per share under base case assumptions, roughly 18% above where it trades today. That is a meaningful but not extreme gap. The thesis is simple and depends on one big variable. If gold stays above $4,500 per ounce, Newmont will be a cash flow machine throwing off $8 to $9 billion in free cash flow per year. If gold retraces below $3,000, the math changes dramatically.</p>
-        <p style={S.p}><strong style={{color:"#E2E8F0"}}>Bottom line for you as an investor considering this name:</strong> you are fundamentally making a bet on the gold price staying elevated. If you believe in the structural bull case for gold (central bank buying, geopolitical hedging, fiscal deficit concerns), Newmont is the highest-quality vehicle to express that view. If you think gold is in a bubble, this stock has significant downside.</p>
+        {/* Layman */}
+        <Section n="" title="What This Means in Plain English">
+          <P>Newmont is the world's largest gold miner. It produces roughly 5.6 million ounces of gold a year from mines across five continents and sits on 134 million ounces of gold reserves, enough to sustain production for over two decades.</P>
+          <P>Gold has been on an extraordinary run. It started 2024 around $2,000 per ounce and now trades above $5,100. That surge has transformed Newmont's economics. The company's cost to mine an ounce of gold is about $1,620. When gold sells for $5,100, the profit margin on every single ounce is roughly $3,480. That is an immensely profitable business.</P>
+          <P>So why might the stock still be undervalued? The stock has roughly tripled from its 2024 lows, which makes some investors nervous about chasing it. Gold miners historically trade at a discount to the value of their underlying gold because of operational risks and the cyclical nature of commodity prices. Many investors are still catching up to the new gold price reality and what it means for cash flows.</P>
+          <P>Our model suggests the stock is worth about $137 per share, roughly 18% above where it trades today. The thesis depends on one big variable. If gold stays above $4,500 per ounce, Newmont will be a cash flow machine. If gold retraces below $3,000, the math changes dramatically.</P>
+          <P>You are fundamentally making a bet on the gold price staying elevated. If you believe in the structural bull case for gold, Newmont is the highest-quality vehicle to express that view.</P>
+        </Section>
 
-        {/* =========== 1. COMPANY OVERVIEW =========== */}
-        <h1 style={S.h1}>1. Company Overview</h1>
-        <p style={S.p}>Newmont Corporation (NYSE: NEM) is the world's leading gold producer and the only gold miner in the S&P 500 Index. Following the 2023 acquisition of Newcrest Mining, the company completed a strategic transformation in 2024, divesting six non-core assets and consolidating around a Tier 1 portfolio of eleven managed operations and three non-managed joint ventures. The company is headquartered in Denver, Colorado.</p>
+        <Section n="01" title="Company Overview">
+          <P>Newmont Corporation is the world's leading gold producer and the only gold miner in the S&P 500. Following the 2023 acquisition of Newcrest Mining, the company divested six non-core assets and consolidated around a Tier 1 portfolio of eleven managed operations and three non-managed joint ventures.</P>
+          <T headers={["Metric","FY2024","FY2025 Guidance"]} rows={[
+            {c:["Gold Production (M oz)","6.8","5.9"]},
+            {c:["Avg Realized Gold Price","$2,408/oz","~$3,800/oz"]},
+            {c:["AISC","$1,444/oz","$1,620/oz"]},
+            {c:["Revenue","$18.68B","~$24.5B"]},
+            {c:["Adj. EBITDA","$8.7B","~$11.8B"]},
+            {c:["Free Cash Flow","$2.96B","~$6.0B"],em:true},
+            {c:["Gold Reserves","134M oz","134M oz"]},
+          ]} />
+        </Section>
 
-        <MemoTable
-          headers={["Metric", "FY2024 Actual", "FY2025 Guidance"]}
-          rows={[
-            { cells: ["Gold Production (M oz)", "6.8", "5.9"] },
-            { cells: ["Tier 1 Production (M oz)", "5.7", "5.6"] },
-            { cells: ["Avg Realized Gold Price ($/oz)", "$2,408", "~$3,800E"] },
-            { cells: ["AISC ($/oz)", "$1,444", "$1,620"] },
-            { cells: ["Revenue ($B)", "$18.68", "~$24.5E"] },
-            { cells: ["Adj. EBITDA ($B)", "$8.7", "~$11.8E"] },
-            { cells: ["Free Cash Flow ($B)", "$2.96", "~$6.0E"] },
-            { cells: ["Gold Reserves (M oz)", "134", "134"] },
-          ]}
-        />
+        <Section n="02" title="Revenue Projection">
+          <P>Revenue is projected on stable Tier 1 gold production of ~5.6M oz/year, combined with institutional gold price consensus. J.P. Morgan forecasts ~$5,000/oz by Q4 2026. UBS targets $5,000/oz. Goldman Sachs projects $5,000 by 2027. Other metals revenue (copper, silver, zinc, lead) grows 3-5% annually.</P>
+          <Sub>Gold Price Assumptions ($/oz)</Sub>
+          <T headers={years} rows={[{c:goldP,em:true}]} compact />
+          <Sub>Revenue Build ($B)</Sub>
+          <T headers={["","2025E","2026E","2027E","2028E","2029E"]} rows={[
+            {c:["Revenue","$24.5","$30.0","$31.5","$32.5","$33.5"],em:true},
+            {c:["YoY Growth","31.2%","22.4%","5.0%","3.2%","3.1%"]},
+            {c:["Gold Revenue","$21.3","$26.3","$27.4","$27.9","$28.5"]},
+            {c:["Other Metals","$3.2","$3.7","$4.1","$4.6","$5.0"]},
+          ]} />
+        </Section>
 
-        {/* =========== 2. REVENUE =========== */}
-        <h1 style={S.h1}>2. Five-Year Revenue Projection</h1>
-        <p style={S.p}>Revenue is projected based on stable Tier 1 gold production of ~5.6 million ounces per year, combined with gold price assumptions derived from the institutional consensus. J.P. Morgan forecasts gold averaging ~$5,000/oz in Q4 2026. UBS targets $5,000/oz for 2026 overall. Goldman Sachs projects $5,000 by 2027. We use a base case that blends these outlooks with a modest premium for continued structural demand drivers (central bank accumulation, geopolitical hedging, and fiscal deficit concerns). Other metals revenue (copper, silver, zinc, lead) is modeled as growing at 3-5% annually from the 2024 base.</p>
+        <Section n="03" title="Operating Margins">
+          <P>EBITDA margin expanded to 46.6% in 2024 as gold prices rose while costs stayed anchored. Q3 2025 operating margin reached 45.8%. We project EBITDA margins stabilizing at 49-50%, reflecting the favorable gold price environment partially offset by ~3% annual cost escalation, higher royalties, and elevated sustaining capital.</P>
+          <T headers={["",...years]} rows={[
+            {c:["Revenue ($B)",...revenue.map(r=>`$${r.toFixed(1)}`)]},
+            {c:["EBITDA ($B)",...ebitda.map(e=>`$${e.toFixed(2)}`)]},
+            {c:["EBITDA Margin",...ebitdaM.map(m=>`${m.toFixed(1)}%`)],em:true},
+            {c:["D&A ($B)",...dna.map(d=>`$${d.toFixed(1)}`)]},
+            {c:["EBIT ($B)",...ebit.map(e=>`$${e.toFixed(2)}`)]},
+            {c:["EBIT Margin",...revenue.map((r,i)=>`${(ebit[i]/r*100).toFixed(1)}%`)],em:true},
+          ]} />
+        </Section>
 
-        <h3 style={S.h3}>Gold Price Assumptions (Base Case, $/oz)</h3>
-        <MemoTable
-          headers={years}
-          labelCol={false}
-          rows={[{ cells: goldPrices, _highlight: true }]}
-        />
+        <Section n="04" title="Free Cash Flow">
+          <P>FCF derived from NOPAT plus depreciation less capex. 30% blended tax rate. Capital expenditure guided at ~$3.1B for 2025 (sustaining $1.8B + development $1.3B), growing modestly as the company invests in Cerro Negro ($800M), Cadia, Tanami, and other Tier 1 sites.</P>
+          <T headers={["($B)",...years]} rows={[
+            {c:["EBIT",...ebit.map(e=>`$${e.toFixed(2)}`)]},
+            {c:["Tax @ 30%",...ebit.map(e=>`(${(e*0.30).toFixed(2)})`)]},
+            {c:["NOPAT",...nopat.map(n=>`$${n}`)]},
+            {c:["+ D&A",...dna.map(d=>`$${d.toFixed(2)}`)]},
+            {c:["- Capex",...capex.map(c=>`(${c.toFixed(2)})`)]},
+            {c:["Free Cash Flow",...fcf.map(f=>`$${f.toFixed(2)}`)],em:true},
+            {c:["FCF Margin",...revenue.map((r,i)=>`${(fcf[i]/r*100).toFixed(1)}%`)],em:true},
+          ]} />
+        </Section>
 
-        <h3 style={S.h3}>Revenue Build ($B)</h3>
-        <MemoTable
-          headers={["", ...years.slice(1)]}
-          rows={[
-            { cells: ["Revenue ($B)", "$24.5", "$30.0", "$31.5", "$32.5", "$33.5"] },
-            { cells: ["YoY Growth", "31.2%", "22.4%", "5.0%", "3.2%", "3.1%"] },
-            { cells: ["Gold Revenue ($B)", "$21.3", "$26.3", "$27.4", "$27.9", "$28.5"] },
-            { cells: ["Other Metals ($B)", "$3.2", "$3.7", "$4.1", "$4.6", "$5.0"] },
-          ]}
-        />
+        <Section n="05" title="Cost of Capital">
+          <P>WACC estimated at 7.7%. Cost of equity via CAPM with 4.1% risk-free rate, 5.5% equity risk premium, and beta of 0.69. Low beta reflects gold's safe-haven diversification properties. Low leverage (net debt/EBITDA 0.6x) means equity dominates the capital structure at 96%.</P>
+          <T headers={["Component","Value"]} rows={[
+            {c:["Risk-Free Rate","4.10%"]},
+            {c:["Equity Risk Premium","5.50%"]},
+            {c:["Beta","0.69"]},
+            {c:["Cost of Equity","7.90%"]},
+            {c:["After-Tax Cost of Debt","3.15%"]},
+            {c:["Equity / Debt Weight","96.1% / 3.9%"]},
+            {c:["WACC","7.7%"],em:true},
+          ]} />
+        </Section>
 
-        {/* =========== 3. MARGINS =========== */}
-        <h1 style={S.h1}>3. Operating Margin Estimates</h1>
-        <p style={S.p}>Newmont's EBITDA margin expanded sharply in 2024 as gold prices rose while production costs remained relatively anchored. The company's 2024 adjusted EBITDA margin was 46.6%. With gold prices now materially higher than 2024 averages, margins have expanded further. Q3 2025 operating margin reached 45.8%. We project EBITDA margins stabilizing at 49-50% through the forecast period, reflecting the favorable gold price environment partially offset by ~3% annual cost escalation guided by management, higher royalties, and elevated sustaining capital requirements for tailings management and infrastructure.</p>
-
-        <MemoTable
-          headers={["", ...years]}
-          rows={[
-            { cells: ["Revenue ($B)", ...revenue.map(r => `$${r.toFixed(1)}`)] },
-            { cells: ["EBITDA ($B)", ...ebitda.map(e => `$${e.toFixed(2)}`)] },
-            { cells: ["EBITDA Margin", ...ebitdaMargin.map(m => `${m.toFixed(1)}%`)], _highlight: true },
-            { cells: ["D&A ($B)", ...dna.map(d => `$${d.toFixed(1)}`)] },
-            { cells: ["EBIT ($B)", ...ebit.map(e => `$${e.toFixed(2)}`)] },
-            { cells: ["EBIT Margin", ...revenue.map((r,i) => `${(ebit[i]/r*100).toFixed(1)}%`)], _highlight: true },
-          ]}
-        />
-
-        {/* =========== 4. FCF =========== */}
-        <h1 style={S.h1}>4. Free Cash Flow Calculation</h1>
-        <p style={S.p}>Free cash flow is derived from NOPAT (net operating profit after tax) plus depreciation less capital expenditures. We assume a 30% blended tax rate consistent with Newmont's 2024 effective rate. Capital expenditure is guided at approximately $3.1 billion for 2025 (sustaining capital of $1.8B plus development capital of $1.3B) and is modeled to grow modestly thereafter as the company invests in its development pipeline, including Cerro Negro in Argentina ($800M commitment announced) and continued work at Cadia, Tanami, and other Tier 1 sites.</p>
-
-        <MemoTable
-          headers={["($B)", ...years]}
-          rows={[
-            { cells: ["EBIT", ...ebit.map(e => `$${e.toFixed(2)}`)] },
-            { cells: ["Tax @ 30%", ...ebit.map(e => `($${(e*0.30).toFixed(2)})`)] },
-            { cells: ["NOPAT", ...nopat.map(n => `$${n}`)] },
-            { cells: ["+ D&A", ...dna.map(d => `$${d.toFixed(2)}`)] },
-            { cells: ["- Capex", ...capex.map(c => `($${c.toFixed(2)})`)] },
-            { cells: ["\u0394 Working Capital", "$0.0", "$0.0", "$0.0", "$0.0", "$0.0", "$0.0"] },
-            { cells: ["Free Cash Flow", ...fcf.map(f => `$${f.toFixed(2)}`)], _accent: true },
-            { cells: ["FCF Margin", ...revenue.map((r,i) => `${(fcf[i]/r*100).toFixed(1)}%`)], _highlight: true },
-          ]}
-        />
-
-        {/* =========== 5. WACC =========== */}
-        <h1 style={S.h1}>5. Weighted Average Cost of Capital (WACC)</h1>
-        <p style={S.p}>We estimate Newmont's WACC at 7.7%, reflecting the company's low leverage profile and moderate equity beta. The cost of equity is derived using the Capital Asset Pricing Model with a risk-free rate of 4.1% (10-year US Treasury yield), an equity risk premium of 5.5%, and Newmont's observed beta of 0.69. The relatively low beta reflects gold's historical role as a diversifier and safe-haven asset, which tends to dampen gold miners' correlation with the broader market.</p>
-
-        <MemoTable
-          headers={["Component", "Value"]}
-          rows={[
-            { cells: ["Risk-Free Rate (10Y UST)", "4.10%"] },
-            { cells: ["Equity Risk Premium", "5.50%"] },
-            { cells: ["Beta", "0.69"] },
-            { cells: ["Cost of Equity (Ke)", "7.90%"] },
-            { cells: ["Pre-Tax Cost of Debt (Kd)", "4.50%"] },
-            { cells: ["Tax Rate", "30.0%"] },
-            { cells: ["After-Tax Cost of Debt", "3.15%"] },
-            { cells: ["Market Cap (Equity)", "$127.6B"] },
-            { cells: ["Total Debt", "$5.2B"] },
-            { cells: ["Equity Weight", "96.1%"] },
-            { cells: ["Debt Weight", "3.9%"] },
-            { cells: ["WACC", "7.7%"], _accent: true },
-          ]}
-        />
-
-        {/* =========== 6. TERMINAL VALUE =========== */}
-        <h1 style={S.h1}>6. Terminal Value</h1>
-        <p style={S.p}>We compute terminal value using two methodologies and weight them equally. The exit multiple approach applies a 10.0x EV/EBITDA multiple to 2029E EBITDA, consistent with the trailing average for large-cap gold miners. The perpetuity growth approach assumes a 2.5% long-term growth rate, reflecting a blend of modest production growth and long-run gold price appreciation in line with inflation.</p>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-          <div style={{ background: "#1E293B", borderRadius: 10, padding: 20 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#93C5FD", margin: "0 0 12px 0" }}>Exit Multiple Method</h3>
+        <Section n="06" title="Terminal Value">
+          <P>Computed via two methods, weighted equally. Exit multiple of 10.0x EV/EBITDA (large-cap gold miner average). Perpetuity growth of 2.5% (long-run gold appreciation in line with inflation).</P>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,marginBottom:24}}>
             {[
-              ["2029E EBITDA", `$${ebitda[5].toFixed(2)}B`],
-              ["Exit Multiple", "10.0x"],
-              ["Terminal Value", `$${tvExit.toFixed(1)}B`],
-              ["PV of Terminal Value", `$${pvTVExit.toFixed(1)}B`],
-            ].map(([l,v],i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #0F172A" }}>
-                <span style={{ fontSize: 13, color: "#94A3B8" }}>{l}</span>
-                <span style={{ fontSize: 13, color: i===3 ? "#FCD34D" : "#E2E8F0", fontWeight: i>=2?700:400 }}>{v}</span>
+              {title:"Exit Multiple",items:[["2029E EBITDA",`$${ebitda[5].toFixed(2)}B`],["Multiple","10.0x"],["Terminal Value",`$${tvE.toFixed(1)}B`],["PV",`$${pvE.toFixed(1)}B`]]},
+              {title:"Perpetuity Growth",items:[["2029E FCF",`$${fcf[5].toFixed(2)}B`],["Growth Rate","2.5%"],["Terminal Value",`$${tvP.toFixed(1)}B`],["PV",`$${pvP.toFixed(1)}B`]]},
+            ].map(col=>(
+              <div key={col.title} style={{background:"#FFF",border:"1px solid #E5E5E0",padding:20}}>
+                <p style={{fontSize:11,fontWeight:600,letterSpacing:1,color:"#999",textTransform:"uppercase",margin:"0 0 12px 0",fontFamily:font}}>{col.title}</p>
+                {col.items.map(([l,v],i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #F0F0EC",fontFamily:font,fontSize:13}}>
+                    <span style={{color:"#888"}}>{l}</span>
+                    <span style={{color:i>=2?"#111":"#555",fontWeight:i>=2?600:400}}>{v}</span>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
-          <div style={{ background: "#1E293B", borderRadius: 10, padding: 20 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#93C5FD", margin: "0 0 12px 0" }}>Perpetuity Growth Method</h3>
-            {[
-              ["2029E FCF", `$${fcf[5].toFixed(2)}B`],
-              ["Terminal Growth Rate (g)", "2.5%"],
-              ["Terminal Value", `$${tvPerp.toFixed(1)}B`],
-              ["PV of Terminal Value", `$${pvTVPerp.toFixed(1)}B`],
-            ].map(([l,v],i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #0F172A" }}>
-                <span style={{ fontSize: 13, color: "#94A3B8" }}>{l}</span>
-                <span style={{ fontSize: 13, color: i===3 ? "#FCD34D" : "#E2E8F0", fontWeight: i>=2?700:400 }}>{v}</span>
-              </div>
-            ))}
+        </Section>
+
+        <Section n="07" title="Valuation Bridge">
+          <T headers={["","Exit Multiple","Perpetuity Growth"]} rows={[
+            {c:["PV of FCFs (Yr 1-5)",`$${sP.toFixed(1)}B`,`$${sP.toFixed(1)}B`]},
+            {c:["PV of Terminal Value",`$${pvE.toFixed(1)}B`,`$${pvP.toFixed(1)}B`]},
+            {c:["Enterprise Value",`$${evE.toFixed(1)}B`,`$${evP.toFixed(1)}B`]},
+            {c:["Net Cash","+$0.8B","+$0.8B"]},
+            {c:["Equity Value",`$${eqE.toFixed(1)}B`,`$${eqP.toFixed(1)}B`]},
+            {c:["Shares Outstanding","1,097M","1,097M"]},
+            {c:["Implied Price",`$${Math.round(pE)}`,`$${Math.round(pP)}`],em:true},
+          ]} />
+          <div style={{borderTop:"2px solid #111",borderBottom:"2px solid #111",padding:"12px 0",textAlign:"center",marginBottom:24}}>
+            <span style={{fontSize:16,color:"#111",fontFamily:font,fontWeight:600}}>Blended Fair Value: ~${Math.round(pB)} per share</span>
           </div>
-        </div>
+        </Section>
 
-        {/* =========== 7. VALUATION BRIDGE =========== */}
-        <h1 style={S.h1}>7. DCF Valuation Bridge</h1>
-
-        <MemoTable
-          headers={["", "Exit Multiple", "Perpetuity Growth"]}
-          rows={[
-            { cells: ["PV of FCFs (Years 1-5)", `$${sumPV.toFixed(1)}B`, `$${sumPV.toFixed(1)}B`] },
-            { cells: ["PV of Terminal Value", `$${pvTVExit.toFixed(1)}B`, `$${pvTVPerp.toFixed(1)}B`] },
-            { cells: ["Enterprise Value", `$${evExit.toFixed(1)}B`, `$${evPerp.toFixed(1)}B`] },
-            { cells: ["Less: Net Debt", "$-0.8B", "$-0.8B"] },
-            { cells: ["Equity Value", `$${eqExit.toFixed(1)}B`, `$${eqPerp.toFixed(1)}B`] },
-            { cells: ["Diluted Shares (M)", "1,097", "1,097"] },
-            { cells: ["Implied Share Price", `$${Math.round(priceExit)}`, `$${Math.round(pricePerp)}`], _accent: true },
-          ]}
-        />
-
-        <div style={{
-          background: "#10B98115", border: "1px solid #10B98130", borderRadius: 10,
-          padding: "16px 24px", textAlign: "center", marginBottom: 32,
-        }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: "#10B981" }}>Blended Fair Value (50/50): ~${Math.round(priceBlend)} per share</span>
-        </div>
-
-        {/* =========== 8. SENSITIVITY =========== */}
-        <h1 style={S.h1}>8. Sensitivity Analysis</h1>
-        <p style={S.p}>The table below shows the implied share price at various combinations of WACC and terminal growth rate. The highlighted cell represents our base case (WACC 7.7%, terminal growth 2.5%). This analysis helps illustrate the range of possible outcomes and the sensitivity of the valuation to key discount rate assumptions.</p>
-
-        <div style={{ overflowX: "auto" }}>
-          <table style={S.table}>
-            <thead>
-              <tr>
-                <th style={S.thL}>WACC / g</th>
-                {waccArr.map(w => <th key={w} style={S.th}>{w.toFixed(1)}%</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {growthArr.map((g, gi) => (
-                <tr key={g} style={gi % 2 === 0 ? S.alt : {}}>
-                  <td style={{ ...S.tdL, background: "#1B3A5C", color: "#F1F5F9" }}>{g.toFixed(1)}%</td>
-                  {waccArr.map((w, wi) => {
-                    const isBase = g === 2.5 && w === 7.7;
-                    return (
-                      <td key={w} style={{
-                        ...S.td,
-                        background: isBase ? "#FCD34D30" : undefined,
-                        color: isBase ? "#FCD34D" : "#E2E8F0",
-                        fontWeight: isBase ? 800 : 400,
-                        fontSize: isBase ? 15 : 13,
-                      }}>${matrix[gi][wi]}</td>
-                    );
-                  })}
+        <Section n="08" title="Sensitivity Analysis">
+          <P>Implied share price at various WACC and terminal growth rate combinations. Base case (7.7% / 2.5%) in bold.</P>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:13,fontFamily:font,marginBottom:24}}>
+              <thead>
+                <tr style={{borderBottom:"2px solid #333"}}>
+                  <th style={{padding:"8px 10px",textAlign:"left",fontSize:11,letterSpacing:0.5,color:"#999"}}>WACC \ g</th>
+                  {wA.map(w=><th key={w} style={{padding:"8px 10px",textAlign:"right",fontSize:11,color:"#999"}}>{w.toFixed(1)}%</th>)}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p style={{ ...S.p, fontSize: 12, fontStyle: "italic" }}>Base case highlighted. Range spans from ${Math.min(...matrix.flat())} to ${Math.max(...matrix.flat())} per share.</p>
-
-        {/* =========== 9. MARKET COMPARISON =========== */}
-        <h1 style={S.h1}>9. DCF vs. Market Price</h1>
-
-        <MemoTable
-          headers={["Metric", "Value"]}
-          rows={[
-            { cells: ["Current Market Price", "$116.29"] },
-            { cells: ["DCF Fair Value (Exit Multiple)", `$${Math.round(priceExit)}`] },
-            { cells: ["DCF Fair Value (Perpetuity Growth)", `$${Math.round(pricePerp)}`] },
-            { cells: ["Blended DCF Fair Value", `$${Math.round(priceBlend)}`], _accent: true },
-            { cells: ["Implied Upside to Blended", `${((priceBlend/116.29-1)*100).toFixed(1)}%`], _accent: true },
-            { cells: ["Street Consensus Target", "$133 - $140"] },
-            { cells: ["52-Week High", "$134.88"] },
-            { cells: ["52-Week Low", "$42.03"] },
-          ]}
-        />
-        <p style={S.p}>Our DCF fair value of ~$137 aligns closely with the Wall Street consensus target range of $133 to $140 and sits just above Newmont's recent all-time high of $134.88. Recent analyst actions have been overwhelmingly bullish. Citi raised its target to $150, BofA to $151, and Bernstein upgraded the stock to Outperform. J.P. Morgan initiated coverage with an Overweight rating. Of 18 analysts covering the stock, all 18 rate it a Buy.</p>
-
-        {/* =========== 10. RISKS =========== */}
-        <h1 style={S.h1}>10. Key Assumptions and Model-Breaking Risks</h1>
-        <p style={S.p}>Every model rests on assumptions, and this one is no different. The following are the critical variables that could cause the actual outcome to diverge materially from our base case.</p>
-
-        {[
-          {
-            title: "Gold Price is the Dominant Variable",
-            text: "This model's single greatest dependency is the gold price. We assume an average realized gold price of $5,000-$5,400 per ounce across the forecast period. Every $100 per ounce move in gold translates to roughly $560 million in annual revenue and approximately $390 million in annual free cash flow for Newmont. A sustained decline to $3,500 per ounce would reduce our fair value estimate to approximately $80 per share. A move to $6,000 per ounce would push fair value above $170.",
-          },
-          {
-            title: "Cost Inflation Could Compress Margins",
-            text: "Mining costs are subject to inflationary pressures on diesel, labor, explosives, and equipment. Newmont guides for ~3% annual cost escalation, but in a high-inflation environment, AISC could rise faster. A sustained move in AISC to $2,000 per ounce (from $1,620 currently) would reduce FCF by approximately $2.1 billion annually.",
-          },
-          {
-            title: "Geopolitical and Jurisdictional Risks",
-            text: "Newmont operates in multiple jurisdictions with varying political risk profiles, including Papua New Guinea, Ghana, Suriname, Argentina, and Peru. Changes in mining royalties, tax regimes, or operational permits could impair cash flows from specific assets. The recent $800 million commitment to Cerro Negro in Argentina is a meaningful capital deployment into a country with a history of currency and policy volatility.",
-          },
-          {
-            title: "Production Execution Risk",
-            text: "We assume stable production of ~5.6 million gold ounces per year. Operational disruptions, grade variability, weather events, or community relations issues could result in production shortfalls. The 2023 Penasquito labor strike is a reminder that production targets are not guaranteed.",
-          },
-          {
-            title: "Terminal Value Sensitivity",
-            text: "Terminal value represents over 75% of total enterprise value in this model, which is typical for mining companies with long reserve lives but highlights the sensitivity to long-term assumptions. A 1-point change in WACC swings fair value by approximately $30 per share.",
-          },
-          {
-            title: "Share Count Dilution and Buyback Pace",
-            text: "We use 1,097 million shares outstanding. Newmont has a $3 billion buyback authorization through October 2026 and has already repurchased $1.2 billion. The pace of buybacks at elevated share prices will influence per-share value creation. We do not model buyback accretion.",
-          },
-        ].map((item, i) => (
-          <div key={i} style={{ marginBottom: 20 }}>
-            <h3 style={S.h3}>{item.title}</h3>
-            <p style={S.p}>{item.text}</p>
+              </thead>
+              <tbody>
+                {gA.map((g,gi)=>(
+                  <tr key={g} style={{borderBottom:"1px solid #E5E5E0"}}>
+                    <td style={{padding:"7px 10px",fontWeight:600,color:"#555"}}>{g.toFixed(1)}%</td>
+                    {wA.map((w,wi)=>{
+                      const base = g===2.5 && w===7.7;
+                      return <td key={w} style={{padding:"7px 10px",textAlign:"right",fontWeight:base?700:400,color:base?"#111":"#666",background:base?"#F5F5F0":undefined}}>${mx[gi][wi]}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
+          <P><em>Range: ${Math.min(...mx.flat())} to ${Math.max(...mx.flat())} per share.</em></P>
+        </Section>
 
-        {/* =========== DISCLAIMER =========== */}
-        <div style={{ borderTop: "2px solid #334155", marginTop: 40, paddingTop: 20 }}>
-          <h2 style={{ ...S.h2, color: "#64748B" }}>Disclaimer</h2>
-          <p style={{ ...S.p, fontSize: 12, color: "#475569", fontStyle: "italic" }}>
-            This memorandum is prepared for informational and educational purposes only. It does not constitute a recommendation to buy, sell, or hold any security. The analysis is based on publicly available information and assumptions that may prove incorrect. All financial projections are inherently uncertain. The author is not a licensed investment advisor, broker, or dealer. Consult a qualified financial professional before making investment decisions. Past performance is not indicative of future results.
+        <Section n="09" title="Market Comparison">
+          <T headers={["","Value"]} rows={[
+            {c:["Current Price","$116.29"]},
+            {c:["DCF (Exit Multiple)",`$${Math.round(pE)}`]},
+            {c:["DCF (Perpetuity Growth)",`$${Math.round(pP)}`]},
+            {c:["Blended Fair Value",`$${Math.round(pB)}`],em:true},
+            {c:["Implied Upside",`${((pB/116.29-1)*100).toFixed(1)}%`],em:true},
+            {c:["Analyst Consensus","$133 - $140"]},
+            {c:["52-Week Range","$42.03 - $134.88"]},
+          ]} />
+          <P>Our fair value aligns with the Street consensus of $133-$140. Recent upgrades from Citi ($150), BofA ($151), and Bernstein (Outperform). J.P. Morgan initiated Overweight. 18/18 analysts rate Buy.</P>
+        </Section>
+
+        <Section n="10" title="Key Risks">
+          {[
+            ["Gold Price","The dominant variable. Every $100/oz move = ~$560M revenue, ~$390M FCF. A sustained $3,500 gold price = ~$80 fair value. $6,000 gold = $170+."],
+            ["Cost Inflation","Mining costs face pressure on diesel, labor, explosives. A move in AISC to $2,000/oz (from $1,620) would reduce FCF by ~$2.1B annually."],
+            ["Geopolitical Risk","Operations in PNG, Ghana, Suriname, Argentina, Peru. The $800M Cerro Negro commitment is meaningful exposure to Argentine policy volatility."],
+            ["Production Risk","Stable 5.6M oz/year assumed. The 2023 Penasquito strike is a reminder that targets are not guaranteed."],
+            ["Terminal Value","Represents >75% of EV. A 1-point WACC change swings fair value by ~$30/share."],
+            ["Buyback Pace","$3B authorization, $1.2B used. Pace at elevated prices affects per-share value. Not modeled."],
+          ].map(([t,d],i)=>(
+            <div key={i} style={{marginBottom:16}}>
+              <p style={{fontSize:13,fontWeight:600,color:"#333",margin:"0 0 4px 0",fontFamily:font}}>{t}</p>
+              <p style={{fontSize:13,color:"#888",lineHeight:1.65,margin:0,fontFamily:font}}>{d}</p>
+            </div>
+          ))}
+        </Section>
+
+        {/* Disclaimer */}
+        <div style={{borderTop:"1px solid #DDD",paddingTop:20,marginTop:20}}>
+          <p style={{fontSize:11,color:"#BBB",lineHeight:1.7,fontFamily:font,fontStyle:"italic"}}>
+            This memorandum is for informational and educational purposes only. It does not constitute investment advice. All projections are inherently uncertain. Consult a qualified professional before making investment decisions.
           </p>
         </div>
       </div>
